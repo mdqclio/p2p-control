@@ -235,9 +235,9 @@ tr:hover td { background: rgba(0,255,170,0.03); color: var(--text); }
     </div>
     <div class="form-group">
       <label>Contraseña</label>
-      <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="password" id="loginPass" placeholder="••••••••" id="loginPassInput">
     </div>
-    <button class="btn-login" onclick="doLogin()">Ingresar</button>
+    <button class="btn-login" id="btnLogin">Ingresar</button>
     <p id="loginError" style="text-align:center;font-size:12px;margin-top:12px;color:var(--red);min-height:16px;"></p>
   </div>
 </div>
@@ -277,7 +277,7 @@ tr:hover td { background: rgba(0,255,170,0.03); color: var(--text); }
       </div>
     </nav>
     <div class="sidebar-footer">
-      <button class="btn-logout" onclick="doLogout()">← cerrar sesión</button>
+      <button class="btn-logout" id="btnLogout">← cerrar sesión</button>
     </div>
   </div>
 
@@ -1374,6 +1374,20 @@ document.addEventListener('click', e => {
 
 // Modal cliente reset
 document.getElementById('modalCliente').addEventListener('click', () => {});
+
+// Event listeners para login/logout — evita problema de type="module"
+document.getElementById('btnLogin')?.addEventListener('click', () => doLogin());
+document.getElementById('loginPassInput')?.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('btnLogout')?.addEventListener('click', () => doLogout());
+
+// Delegador global — maneja TODOS los onclick del HTML
+document.addEventListener('click', function(e) {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const fn = el.dataset.action;
+  const args = el.dataset.args ? JSON.parse(el.dataset.args) : [];
+  if (typeof window[fn] === 'function') window[fn](...args);
+});
 
 Object.assign(window, {
   doLogin: window.doLogin, doLogout: window.doLogout, showSection, openModal, closeModal,
