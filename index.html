@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P2P Control — Sistema de Cambio</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c10;
+  --bg2: #0d1117;
+  --bg3: #111820;
+  --surface: #141c24;
+  --surface2: #1a2330;
+  --surface3: #1f2b3a;
+  --border: rgba(0,255,170,0.1);
+  --border2: rgba(0,255,170,0.22);
+  --green: #00ffaa;
+  --green2: #00cc88;
+  --green3: rgba(0,255,170,0.08);
+  --red: #ff4466;
+  --red2: rgba(255,68,102,0.12);
+  --amber: #ffaa00;
+  --amber2: rgba(255,170,0,0.12);
+  --blue: #4488ff;
+  --blue2: rgba(68,136,255,0.12);
+  --text: #e8f4f0;
+  --text2: #7a9e94;
+  --text3: #3d5c52;
+  --radius: 8px;
+  --radius2: 14px;
+  --mono: 'Space Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+button { font-family: inherit; cursor: pointer; border: none; outline: none; }
+input, select, textarea { font-family: inherit; outline: none; }
+
+/* LOGIN */
+#loginScreen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.login-box {
+  width: 360px; padding: 48px 40px;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--radius2);
+  box-shadow: 0 0 80px rgba(0,255,170,0.06);
+}
+.login-logo { margin-bottom: 36px; }
+.login-logo h1 { font-size: 26px; font-weight: 800; color: var(--green); letter-spacing: -1px; }
+.login-logo p { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top:4px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 10px; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; font-family: var(--mono); }
+.form-group input, .form-group select {
+  width: 100%; padding: 10px 14px; background: var(--bg3);
+  border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 14px; font-family: var(--mono);
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--green); }
+.btn-login {
+  width: 100%; padding: 12px; background: var(--green); color: var(--bg);
+  border-radius: var(--radius); font-size: 14px; font-weight: 700; font-family: var(--sans);
+  letter-spacing: 0.5px; transition: all 0.2s; margin-top: 8px;
+}
+.btn-login:hover { background: var(--green2); transform: translateY(-1px); }
+
+/* LAYOUT */
+#app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 230px; min-height: 100vh; background: var(--surface);
+  border-right: 1px solid var(--border); position: fixed; left: 0; top: 0;
+  display: flex; flex-direction: column; z-index: 100;
+}
+.sidebar-logo {
+  padding: 24px 20px 20px; border-bottom: 1px solid var(--border);
+}
+.sidebar-logo h2 { font-size: 18px; font-weight: 800; color: var(--green); letter-spacing: -0.5px; }
+.sidebar-logo p { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 3px; }
+.sidebar-user { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text2); }
+.sidebar-user strong { display: block; color: var(--text); font-size: 13px; }
+nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+.nav-section { font-family: var(--mono); font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; padding: 10px 20px 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 20px;
+  color: var(--text2); font-size: 13px; cursor: pointer; transition: all 0.15s;
+  border-left: 2px solid transparent; font-weight: 500;
+}
+.nav-item:hover { color: var(--text); background: var(--surface2); }
+.nav-item.active { color: var(--green); background: var(--green3); border-left-color: var(--green); }
+.nav-item .icon { width: 18px; text-align: center; font-size: 14px; }
+.sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); }
+.btn-logout { width: 100%; padding: 8px; background: transparent; border: 1px solid var(--border2); color: var(--text3); border-radius: var(--radius); font-size: 12px; font-family: var(--mono); transition: all 0.2s; }
+.btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+.main { margin-left: 230px; flex: 1; padding: 28px; }
+
+/* TOPBAR */
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.topbar h1 { font-size: 22px; font-weight: 800; color: var(--text); }
+.date-badge { font-family: var(--mono); font-size: 11px; color: var(--text3); background: var(--surface); border: 1px solid var(--border); padding: 6px 12px; border-radius: var(--radius); }
+
+/* BUTTONS */
+.btn { padding: 8px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 600; transition: all 0.2s; cursor: pointer; font-family: var(--sans); }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+.btn-green { background: var(--green); color: var(--bg); }
+.btn-green:hover { background: var(--green2); }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+.btn-red { background: var(--red2); color: var(--red); border: 1px solid rgba(255,68,102,0.25); }
+.btn-red:hover { background: rgba(255,68,102,0.25); }
+.btn-amber { background: var(--amber2); color: var(--amber); border: 1px solid rgba(255,170,0,0.25); }
+
+/* SECTIONS */
+.section { display: none; }
+.section.active { display: block; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 18px 20px;
+}
+.stat-card .label { font-family: var(--mono); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.stat-card .value { font-size: 24px; font-weight: 700; color: var(--text); font-family: var(--mono); }
+.stat-card .sub { font-size: 11px; color: var(--text2); margin-top: 4px; font-family: var(--mono); }
+.stat-card.green { border-left: 3px solid var(--green); }
+.stat-card.red { border-left: 3px solid var(--red); }
+.stat-card.amber { border-left: 3px solid var(--amber); }
+.stat-card.blue { border-left: 3px solid var(--blue); }
+
+/* CAJA - monedas */
+.caja-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.caja-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.caja-card .caja-moneda { font-family: var(--mono); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+.caja-card .caja-saldo { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--green); }
+.caja-card .caja-saldo.negative { color: var(--red); }
+.caja-card .caja-icon { font-size: 20px; }
+.caja-card .caja-edit { font-size: 11px; color: var(--text3); cursor: pointer; text-decoration: underline; margin-top: 2px; }
+.caja-card .caja-edit:hover { color: var(--green); }
+
+/* CARD */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius2); overflow: hidden; margin-bottom: 20px; }
+.card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.card-header h3 { font-size: 14px; font-weight: 700; color: var(--text); }
+
+/* TABLE */
+table { width: 100%; border-collapse: collapse; }
+th { font-family: var(--mono); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface2); }
+td { font-size: 13px; color: var(--text2); padding: 11px 16px; border-bottom: 1px solid rgba(0,255,170,0.04); font-family: var(--mono); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(0,255,170,0.03); color: var(--text); }
+
+/* BADGES */
+.badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; font-family: var(--mono); text-transform: uppercase; }
+.badge-compra { background: rgba(0,255,170,0.12); color: var(--green); }
+.badge-venta { background: var(--red2); color: var(--red); }
+.badge-green { background: rgba(0,255,170,0.12); color: var(--green); }
+.badge-amber { background: var(--amber2); color: var(--amber); }
+.badge-blue { background: var(--blue2); color: var(--blue); }
+.badge-gray { background: var(--surface2); color: var(--text3); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; z-index: 500;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--radius2); padding: 28px; width: 540px; max-width: 95vw;
+  max-height: 90vh; overflow-y: auto;
+  transform: translateY(16px); transition: transform 0.2s;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal h2 { font-size: 18px; font-weight: 800; margin-bottom: 20px; color: var(--text); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 10px 12px; background: var(--bg3);
+  border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 13px; font-family: var(--mono);
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--green); }
+.form-group select option { background: var(--surface2); }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* FILTROS */
+.filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.filters input, .filters select {
+  padding: 8px 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text); font-size: 13px; font-family: var(--mono);
+}
+
+/* GANANCIA */
+.ganancia-box { background: var(--green3); border: 1px solid var(--border2); border-radius: var(--radius); padding: 12px 16px; margin-top: 12px; }
+.ganancia-box .g-label { font-family: var(--mono); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+.ganancia-box .g-value { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--green); margin-top: 4px; }
+
+/* NOTIF */
+.notif {
+  position: fixed; top: 20px; right: 20px; background: var(--surface);
+  border: 1px solid var(--border2); border-radius: var(--radius); padding: 12px 18px;
+  font-size: 13px; color: var(--text); z-index: 1000; transform: translateX(120%);
+  transition: transform 0.3s; box-shadow: 0 8px 32px rgba(0,0,0,0.4); font-family: var(--mono);
+}
+.notif.show { transform: translateX(0); }
+.notif.success { border-left: 3px solid var(--green); }
+.notif.error { border-left: 3px solid var(--red); }
+
+/* LOADER */
+#fbLoader { position:fixed;inset:0;background:rgba(8,12,16,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2000;gap:16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* RESPONSIVE */
+@media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(2,1fr); } .caja-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 768px) { .main { margin-left: 0; padding: 16px; } .stats-grid { grid-template-columns: repeat(2,1fr); } .form-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>⚡ P2P Control</h1>
+      <p>sistema de cambio · v1.0</p>
+    </div>
+    <div class="form-group">
+      <label>Usuario</label>
+      <input type="text" id="loginUser" placeholder="email@dominio.com">
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Ingresar</button>
+    <p id="loginError" style="text-align:center;font-size:12px;margin-top:12px;color:var(--red);min-height:16px;"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h2>⚡ P2P Control</h2>
+      <p>sistema de cambio</p>
+    </div>
+    <div class="sidebar-user">
+      <strong id="sidebarUserName">Admin</strong>
+      <span id="sidebarUserRole">Administración</span>
+    </div>
+    <nav>
+      <div class="nav-section">Principal</div>
+      <div class="nav-item active" onclick="showSection('dashboard')" id="nav-dashboard">
+        <span class="icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showSection('caja')" id="nav-caja">
+        <span class="icon">💰</span> Caja
+      </div>
+      <div class="nav-section">Operaciones</div>
+      <div class="nav-item" onclick="showSection('operaciones')" id="nav-operaciones">
+        <span class="icon">⚡</span> Operaciones
+      </div>
+      <div class="nav-item" onclick="showSection('clientes')" id="nav-clientes">
+        <span class="icon">👤</span> Clientes
+      </div>
+      <div class="nav-section">Reportes</div>
+      <div class="nav-item" onclick="showSection('historial')" id="nav-historial">
+        <span class="icon">📋</span> Historial
+      </div>
+      <div class="nav-item" onclick="showSection('reportes')" id="nav-reportes">
+        <span class="icon">📈</span> Reportes
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="doLogout()">← cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <h1 id="pageTitle">Dashboard</h1>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="date-badge" id="topDate"></span>
+        <button class="btn btn-green btn-sm" onclick="openModal('modalOperacion')">+ Nueva operación</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="section-dashboard" class="section active">
+      <div class="stats-grid">
+        <div class="stat-card green">
+          <div class="label">Ganancia hoy</div>
+          <div class="value" id="stat-ganancia-hoy">$0</div>
+          <div class="sub" id="stat-ganancia-hoy-sub">0 operaciones</div>
+        </div>
+        <div class="stat-card green">
+          <div class="label">Ganancia mes</div>
+          <div class="value" id="stat-ganancia-mes">$0</div>
+          <div class="sub" id="stat-ganancia-mes-sub">en ARS</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="label">Volumen hoy</div>
+          <div class="value" id="stat-volumen-hoy">$0</div>
+          <div class="sub">operado</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="label">Clientes activos</div>
+          <div class="value" id="stat-clientes">0</div>
+          <div class="sub">total registrados</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="card">
+          <div class="card-header"><h3>Últimas operaciones</h3></div>
+          <table>
+            <thead><tr><th>Fecha</th><th>Cliente</th><th>Operación</th><th>Monto</th><th>Ganancia</th></tr></thead>
+            <tbody id="dash-ultimas"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Saldos rápidos</h3></div>
+          <div id="dash-saldos" style="padding:16px;display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAJA -->
+    <div id="section-caja" class="section">
+      <div class="caja-grid" id="cajaGrid"></div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Ajustes de caja</h3>
+          <button class="btn btn-ghost btn-sm" onclick="openModal('modalAjuste')">+ Ajuste manual</button>
+        </div>
+        <table>
+          <thead><tr><th>Fecha</th><th>Moneda</th><th>Tipo</th><th>Monto</th><th>Motivo</th></tr></thead>
+          <tbody id="tablaAjustes"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- OPERACIONES -->
+    <div id="section-operaciones" class="section">
+      <div class="filters">
+        <input type="text" placeholder="🔍 Buscar cliente..." id="filterOpCliente" oninput="renderOperaciones()" style="min-width:200px;">
+        <select id="filterOpTipo" onchange="renderOperaciones()">
+          <option value="">Todos los tipos</option>
+          <option value="compra">Compra</option>
+          <option value="venta">Venta</option>
+        </select>
+        <select id="filterOpMoneda" onchange="renderOperaciones()">
+          <option value="">Todas las monedas</option>
+          <option value="USDT">USDT</option>
+          <option value="USD">USD efectivo</option>
+          <option value="EUR">EUR</option>
+          <option value="ARS">ARS</option>
+          <option value="Wise USD">Wise USD</option>
+          <option value="Wise EUR">Wise EUR</option>
+          <option value="Payoneer">Payoneer</option>
+          <option value="PayPal">PayPal</option>
+        </select>
+        <input type="date" id="filterOpFecha" onchange="renderOperaciones()">
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Operaciones</h3>
+          <button class="btn btn-green btn-sm" onclick="openModal('modalOperacion')">+ Nueva</button>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Fecha/Hora</th><th>Cliente</th><th>Tipo</th><th>Da</th><th>Recibe</th><th>TC</th><th>Ganancia</th><th>Acción</th></tr></thead>
+          <tbody id="tablaOperaciones"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div id="section-clientes" class="section">
+      <div class="filters">
+        <input type="text" placeholder="🔍 Buscar..." id="filterCliente" oninput="renderClientes()" style="min-width:220px;">
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Clientes</h3>
+          <button class="btn btn-green btn-sm" onclick="openModal('modalCliente')">+ Nuevo</button>
+        </div>
+        <table>
+          <thead><tr><th>Nombre</th><th>Contacto</th><th>Operaciones</th><th>Volumen</th><th>Último</th><th>Acciones</th></tr></thead>
+          <tbody id="tablaClientes"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div id="section-historial" class="section">
+      <div class="filters">
+        <input type="date" id="filterHistDesde">
+        <input type="date" id="filterHistHasta">
+        <select id="filterHistMoneda" onchange="renderHistorial()">
+          <option value="">Todas las monedas</option>
+          <option value="USDT">USDT</option>
+          <option value="USD">USD efectivo</option>
+          <option value="EUR">EUR</option>
+          <option value="ARS">ARS</option>
+          <option value="Wise USD">Wise USD</option>
+          <option value="Wise EUR">Wise EUR</option>
+          <option value="Payoneer">Payoneer</option>
+          <option value="PayPal">PayPal</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="renderHistorial()">Filtrar</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportarCSV()">⬇ CSV</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Historial completo</h3>
+          <span id="histTotal" style="font-family:var(--mono);font-size:11px;color:var(--text3)"></span>
+        </div>
+        <table>
+          <thead><tr><th>Fecha/Hora</th><th>Cliente</th><th>Tipo</th><th>Da</th><th>Recibe</th><th>TC</th><th>Ganancia ARS</th><th>Nota</th></tr></thead>
+          <tbody id="tablaHistorial"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REPORTES -->
+    <div id="section-reportes" class="section">
+      <div class="stats-grid" id="reporteStats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="card">
+          <div class="card-header"><h3>Ganancia por moneda (mes)</h3></div>
+          <div id="reporteMonedas" style="padding:16px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Top clientes</h3></div>
+          <table>
+            <thead><tr><th>Cliente</th><th>Operaciones</th><th>Volumen ARS</th></tr></thead>
+            <tbody id="reporteClientes"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL OPERACION -->
+<div class="modal-overlay" id="modalOperacion">
+  <div class="modal">
+    <h2>⚡ Nueva Operación</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Tipo *</label>
+        <select id="op-tipo" onchange="calcOperacion()">
+          <option value="compra">Compra (me dan — yo pago ARS)</option>
+          <option value="venta">Venta (doy — me pagan ARS)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cliente *</label>
+        <select id="op-cliente"><option value="">Seleccionar...</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Moneda que opera *</label>
+        <select id="op-moneda" onchange="calcOperacion()">
+          <option value="USDT">USDT</option>
+          <option value="USD">USD efectivo</option>
+          <option value="EUR">EUR</option>
+          <option value="Wise USD">Wise USD</option>
+          <option value="Wise EUR">Wise EUR</option>
+          <option value="Payoneer">Payoneer</option>
+          <option value="PayPal">PayPal</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Monto *</label>
+        <input type="number" id="op-monto" placeholder="0.00" oninput="calcOperacion()">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>TC compra (precio al que compro)</label>
+        <input type="number" id="op-tc-compra" placeholder="0.00" oninput="calcOperacion()">
+      </div>
+      <div class="form-group">
+        <label>TC venta (precio al que vendo)</label>
+        <input type="number" id="op-tc-venta" placeholder="0.00" oninput="calcOperacion()">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Método de cobro/pago</label>
+        <select id="op-metodo">
+          <option value="efectivo">Efectivo ARS</option>
+          <option value="transferencia">Transferencia ARS</option>
+          <option value="crypto">Crypto on-chain</option>
+          <option value="wise">Wise</option>
+          <option value="payoneer">Payoneer</option>
+          <option value="paypal">PayPal</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Fecha y hora</label>
+        <input type="datetime-local" id="op-fecha">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Nota</label>
+      <input type="text" id="op-nota" placeholder="Ej: cliente habitual, urgente...">
+    </div>
+    <div class="ganancia-box" id="op-preview" style="display:none;">
+      <div class="g-label">Resumen de la operación</div>
+      <div id="op-preview-content" style="margin-top:8px;font-family:var(--mono);font-size:13px;color:var(--text2);line-height:2;"></div>
+      <div class="g-label" style="margin-top:8px;">Ganancia estimada</div>
+      <div class="g-value" id="op-ganancia-display">$0 ARS</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalOperacion')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveOperacion()">Confirmar operación</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CLIENTE -->
+<div class="modal-overlay" id="modalCliente">
+  <div class="modal">
+    <h2 id="modalClienteTitle">Nuevo Cliente</h2>
+    <input type="hidden" id="cl-id">
+    <div class="form-row">
+      <div class="form-group"><label>Nombre *</label><input type="text" id="cl-nombre"></div>
+      <div class="form-group"><label>Alias / Apodo</label><input type="text" id="cl-alias"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Teléfono / WhatsApp</label><input type="text" id="cl-tel"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="cl-email"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Plataforma preferida</label>
+        <select id="cl-plat">
+          <option value="">—</option>
+          <option value="USDT">USDT</option>
+          <option value="USD">USD efectivo</option>
+          <option value="EUR">EUR</option>
+          <option value="Wise USD">Wise USD</option>
+          <option value="Wise EUR">Wise EUR</option>
+          <option value="Payoneer">Payoneer</option>
+          <option value="PayPal">PayPal</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Referido por</label><input type="text" id="cl-ref"></div>
+    </div>
+    <div class="form-group"><label>Notas</label><textarea id="cl-notas" rows="2"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalCliente')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AJUSTE CAJA -->
+<div class="modal-overlay" id="modalAjuste">
+  <div class="modal">
+    <h2>Ajuste de Caja</h2>
+    <div class="form-row">
+      <div class="form-group"><label>Moneda *</label>
+        <select id="aj-moneda">
+          <option value="USDT">USDT</option>
+          <option value="USD">USD efectivo</option>
+          <option value="EUR">EUR</option>
+          <option value="ARS">ARS</option>
+          <option value="Wise USD">Wise USD</option>
+          <option value="Wise EUR">Wise EUR</option>
+          <option value="Payoneer">Payoneer</option>
+          <option value="PayPal">PayPal</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Tipo *</label>
+        <select id="aj-tipo">
+          <option value="ingreso">Ingreso</option>
+          <option value="egreso">Egreso</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Monto *</label><input type="number" id="aj-monto" placeholder="0.00"></div>
+      <div class="form-group"><label>Motivo</label><input type="text" id="aj-motivo" placeholder="Ej: depósito inicial, retiro..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalAjuste')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveAjuste()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE CLIENTE -->
+<div class="modal-overlay" id="modalDetalleCliente">
+  <div class="modal" style="max-width:640px;">
+    <h2 id="modalDetalleClienteTitle">Cliente</h2>
+    <div id="detalleClienteContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalDetalleCliente')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+
+// ===== FIREBASE CONFIG — reemplazá con tu propio proyecto =====
+const firebaseConfig = {
+  apiKey: "AIzaSyA5t5VDaxE8DK_BnnjodTeU2CisIYVqzsQ",
+  authDomain: "p2p-control.firebaseapp.com",
+  databaseURL: "https://p2p-control-default-rtdb.firebaseio.com",
+  projectId: "p2p-control",
+  storageBucket: "p2p-control.firebasestorage.app",
+  messagingSenderId: "895646888939",
+  appId: "1:895646888939:web:8a16db974d095125015fae"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+const auth = getAuth(firebaseApp);
+
+const cache = {};
+const DB = {
+  get: (k, def) => { const v = cache[k]; return (v !== undefined && v !== null) ? v : def; },
+  set: async (k, v) => { cache[k] = v; try { await set(ref(db, 'p2p/' + k), v); } catch(e) { console.error('Firebase write error:', e); } }
+};
+
+const MONEDAS = [
+  { id: 'USDT',      label: 'USDT',       icon: '₮' },
+  { id: 'USD',       label: 'USD Cash',   icon: '$' },
+  { id: 'EUR',       label: 'EUR',        icon: '€' },
+  { id: 'ARS',       label: 'ARS',        icon: '$' },
+  { id: 'Wise USD',  label: 'Wise USD',   icon: 'W$' },
+  { id: 'Wise EUR',  label: 'Wise EUR',   icon: 'W€' },
+  { id: 'Payoneer',  label: 'Payoneer',   icon: 'P' },
+  { id: 'PayPal',    label: 'PayPal',     icon: 'PP' },
+];
+
+async function loadAllData() {
+  showLoader(true);
+  try {
+    const snapshot = await get(ref(db, 'p2p'));
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      Object.keys(data).forEach(k => cache[k] = data[k]);
+    }
+    await initData();
+  } catch(e) {
+    console.error('Firebase read error:', e);
+    showNotif('Error conectando con Firebase', 'error');
+  }
+  showLoader(false);
+}
+
+function showLoader(show) {
+  let loader = document.getElementById('fbLoader');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'fbLoader';
+    loader.style.cssText = 'position:fixed;inset:0;background:rgba(8,12,16,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2000;gap:16px';
+    loader.innerHTML = '<div style="width:36px;height:36px;border:2px solid rgba(0,255,170,0.2);border-top-color:#00ffaa;border-radius:50%;animation:spin 0.8s linear infinite"></div><p style="font-family:\'Space Mono\',monospace;font-size:12px;color:#3d5c52">conectando...</p>';
+    document.body.appendChild(loader);
+  }
+  loader.style.display = show ? 'flex' : 'none';
+}
+
+async function initData() {
+  if (cache['init']) return;
+  await DB.set('clientes', []);
+  await DB.set('operaciones', []);
+  await DB.set('ajustes', []);
+  const saldos = {};
+  MONEDAS.forEach(m => saldos[m.id] = 0);
+  await DB.set('saldos', saldos);
+  await DB.set('usuarios', [
+    { id: 'u1', nombre: 'Leonardo', email: 'clio@mdq.com.ar', rol: 'admin', estado: 'activo' }
+  ]);
+  await DB.set('init', true);
+}
+
+// ===== AUTH =====
+let currentUser = null;
+
+async function doLogin() {
+  const email = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  if (!email || !pass) { showLoginError('Completá usuario y contraseña'); return; }
+  try {
+    showLoginError('Verificando...', '#60a5fa');
+    await signInWithEmailAndPassword(auth, email, pass);
+    await loadAllData();
+    const usuarios = DB.get('usuarios', []);
+    const u = usuarios.find(x => x.email.toLowerCase() === email.toLowerCase());
+    if (!u || u.estado === 'inactivo') { await signOut(auth); showLoginError('Usuario no autorizado'); return; }
+    currentUser = { id: u.id, name: u.nombre, email: u.email };
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('sidebarUserName').textContent = u.nombre;
+    showSection('dashboard');
+    updateDate();
+  } catch(e) {
+    const msg = e.code === 'auth/invalid-credential' ? 'Usuario o contraseña incorrectos' : 'Error al iniciar sesión';
+    showLoginError(msg);
+  }
+}
+
+function showLoginError(msg, color = '#ff4466') {
+  const el = document.getElementById('loginError');
+  el.style.color = color;
+  el.textContent = msg;
+  if (color !== '#60a5fa') setTimeout(() => el.textContent = '', 3500);
+}
+
+async function doLogout() {
+  await signOut(auth);
+  currentUser = null;
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+// ===== NAVIGATION =====
+const sectionTitles = {
+  dashboard: 'Dashboard', caja: 'Caja', operaciones: 'Operaciones',
+  clientes: 'Clientes', historial: 'Historial', reportes: 'Reportes'
+};
+
+function showSection(s) {
+  document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('section-' + s)?.classList.add('active');
+  document.getElementById('nav-' + s)?.classList.add('active');
+  document.getElementById('pageTitle').textContent = sectionTitles[s] || s;
+  if (s === 'dashboard') loadAllData().then(() => renderDashboard());
+  if (s === 'caja') loadAllData().then(() => renderCaja());
+  if (s === 'operaciones') loadAllData().then(() => renderOperaciones());
+  if (s === 'clientes') loadAllData().then(() => renderClientes());
+  if (s === 'historial') loadAllData().then(() => renderHistorial());
+  if (s === 'reportes') loadAllData().then(() => renderReportes());
+}
+
+function updateDate() {
+  const d = new Date();
+  document.getElementById('topDate').textContent = d.toLocaleDateString('es-AR', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function openModal(id) { document.getElementById(id)?.classList.add('open'); }
+function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+});
+
+function showNotif(msg, type = 'success') {
+  const el = document.getElementById('notif');
+  el.textContent = msg; el.className = 'notif show ' + type;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function today() { return new Date().toISOString().split('T')[0]; }
+function nowDT() { return new Date().toISOString().slice(0,16); }
+
+function fmtARS(n) { return '$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+function fmtNum(n, dec=2) { return Number(n).toLocaleString('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+function fmtDT(dt) { if (!dt) return '—'; const d = new Date(dt); return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'}); }
+
+function getClienteNombre(id) {
+  const c = DB.get('clientes', []).find(x => x.id === id);
+  return c ? (c.alias || c.nombre) : id;
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  const ops = DB.get('operaciones', []);
+  const hoy = today();
+  const mes = hoy.substring(0, 7);
+
+  const opsHoy = ops.filter(o => o.fecha && o.fecha.substring(0,10) === hoy);
+  const opsMes = ops.filter(o => o.fecha && o.fecha.substring(0,7) === mes);
+
+  const ganHoy = opsHoy.reduce((a, o) => a + (Number(o.gananciaARS) || 0), 0);
+  const ganMes = opsMes.reduce((a, o) => a + (Number(o.gananciaARS) || 0), 0);
+  const volHoy = opsHoy.reduce((a, o) => a + (Number(o.montoARS) || 0), 0);
+  const clientes = DB.get('clientes', []);
+
+  document.getElementById('stat-ganancia-hoy').textContent = fmtARS(ganHoy);
+  document.getElementById('stat-ganancia-hoy-sub').textContent = opsHoy.length + ' operaciones';
+  document.getElementById('stat-ganancia-mes').textContent = fmtARS(ganMes);
+  document.getElementById('stat-ganancia-mes-sub').textContent = opsMes.length + ' ops este mes';
+  document.getElementById('stat-volumen-hoy').textContent = fmtARS(volHoy);
+  document.getElementById('stat-clientes').textContent = clientes.length;
+
+  // Últimas 5 operaciones
+  const ultimas = [...ops].sort((a,b) => b.fecha > a.fecha ? 1 : -1).slice(0, 5);
+  document.getElementById('dash-ultimas').innerHTML = ultimas.length
+    ? ultimas.map(o => `<tr>
+        <td>${o.fecha ? o.fecha.substring(0,10) : '—'}</td>
+        <td>${getClienteNombre(o.clienteId)}</td>
+        <td>${o.tipo === 'compra' ? '<span class="badge badge-compra">compra</span>' : '<span class="badge badge-venta">venta</span>'} ${o.moneda}</td>
+        <td>${fmtNum(o.monto)} ${o.moneda}</td>
+        <td style="color:var(--green)">${fmtARS(o.gananciaARS)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin operaciones</td></tr>';
+
+  // Saldos rápidos
+  const saldos = DB.get('saldos', {});
+  document.getElementById('dash-saldos').innerHTML = MONEDAS.map(m => {
+    const s = saldos[m.id] || 0;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+      <span style="font-family:var(--mono);font-size:12px;color:var(--text2)">${m.label}</span>
+      <span style="font-family:var(--mono);font-size:14px;font-weight:700;color:${s < 0 ? 'var(--red)' : s === 0 ? 'var(--text3)' : 'var(--green)'}">${fmtNum(s)} ${m.id === 'ARS' ? '' : m.id}</span>
+    </div>`;
+  }).join('');
+}
+
+// ===== CAJA =====
+function renderCaja() {
+  const saldos = DB.get('saldos', {});
+  const ajustes = DB.get('ajustes', []);
+
+  document.getElementById('cajaGrid').innerHTML = MONEDAS.map(m => {
+    const s = Number(saldos[m.id] || 0);
+    return `<div class="caja-card">
+      <div class="caja-icon">${m.icon}</div>
+      <div class="caja-moneda">${m.label}</div>
+      <div class="caja-saldo ${s < 0 ? 'negative' : ''}">${fmtNum(s)} <span style="font-size:12px;opacity:0.6">${m.id}</span></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('tablaAjustes').innerHTML = [...ajustes].sort((a,b) => b.fecha > a.fecha ? 1 : -1).map(a => `<tr>
+    <td>${fmtDT(a.fecha)}</td>
+    <td><span class="badge badge-gray">${a.moneda}</span></td>
+    <td>${a.tipo === 'ingreso' ? '<span class="badge badge-green">ingreso</span>' : '<span class="badge badge-venta">egreso</span>'}</td>
+    <td>${fmtNum(a.monto)}</td>
+    <td style="color:var(--text2)">${a.motivo || '—'}</td>
+  </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin ajustes</td></tr>';
+}
+
+async function saveAjuste() {
+  const moneda = document.getElementById('aj-moneda').value;
+  const tipo = document.getElementById('aj-tipo').value;
+  const monto = Number(document.getElementById('aj-monto').value);
+  const motivo = document.getElementById('aj-motivo').value;
+  if (!monto || monto <= 0) { showNotif('Ingresá un monto válido', 'error'); return; }
+
+  const ajustes = DB.get('ajustes', []);
+  ajustes.push({ id: 'aj' + Date.now(), moneda, tipo, monto, motivo, fecha: new Date().toISOString() });
+  await DB.set('ajustes', ajustes);
+
+  // Actualizar saldo
+  const saldos = DB.get('saldos', {});
+  saldos[moneda] = (saldos[moneda] || 0) + (tipo === 'ingreso' ? monto : -monto);
+  await DB.set('saldos', saldos);
+
+  closeModal('modalAjuste');
+  renderCaja();
+  showNotif(`✅ Ajuste guardado: ${tipo} de ${fmtNum(monto)} ${moneda}`);
+  document.getElementById('aj-monto').value = '';
+  document.getElementById('aj-motivo').value = '';
+}
+
+// ===== OPERACIONES =====
+function calcOperacion() {
+  const tipo = document.getElementById('op-tipo').value;
+  const moneda = document.getElementById('op-moneda').value;
+  const monto = Number(document.getElementById('op-monto').value) || 0;
+  const tcCompra = Number(document.getElementById('op-tc-compra').value) || 0;
+  const tcVenta = Number(document.getElementById('op-tc-venta').value) || 0;
+
+  const preview = document.getElementById('op-preview');
+  if (!monto || (!tcCompra && !tcVenta)) { preview.style.display = 'none'; return; }
+
+  let ganancia = 0, montoARS = 0, desc = '';
+
+  if (tipo === 'compra') {
+    // Compro moneda extranjera: pago tcCompra*monto ARS, después vendo a tcVenta
+    montoARS = monto * tcCompra;
+    if (tcVenta) ganancia = monto * (tcVenta - tcCompra);
+    desc = `Compro ${fmtNum(monto)} ${moneda} a $${fmtNum(tcCompra,2)}<br>Pago: ${fmtARS(montoARS)} ARS`;
+    if (tcVenta) desc += `<br>Si vendo a $${fmtNum(tcVenta,2)} → ganancia: ${fmtARS(ganancia)}`;
+  } else {
+    // Vendo moneda extranjera: cobro tcVenta*monto ARS, la había comprado a tcCompra
+    montoARS = monto * tcVenta;
+    if (tcCompra) ganancia = monto * (tcVenta - tcCompra);
+    desc = `Vendo ${fmtNum(monto)} ${moneda} a $${fmtNum(tcVenta,2)}<br>Cobro: ${fmtARS(montoARS)} ARS`;
+    if (tcCompra) desc += `<br>Comprado a $${fmtNum(tcCompra,2)} → ganancia: ${fmtARS(ganancia)}`;
+  }
+
+  preview.style.display = 'block';
+  document.getElementById('op-preview-content').innerHTML = desc;
+  document.getElementById('op-ganancia-display').textContent = fmtARS(ganancia) + ' ARS';
+  document.getElementById('op-ganancia-display').style.color = ganancia >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+let savingOp = false;
+async function saveOperacion() {
+  if (savingOp) return;
+  const tipo = document.getElementById('op-tipo').value;
+  const clienteId = document.getElementById('op-cliente').value;
+  const moneda = document.getElementById('op-moneda').value;
+  const monto = Number(document.getElementById('op-monto').value);
+  const tcCompra = Number(document.getElementById('op-tc-compra').value) || 0;
+  const tcVenta = Number(document.getElementById('op-tc-venta').value) || 0;
+  const metodo = document.getElementById('op-metodo').value;
+  const nota = document.getElementById('op-nota').value;
+  const fechaInput = document.getElementById('op-fecha').value;
+
+  if (!clienteId || !monto || monto <= 0) { showNotif('Completá cliente y monto', 'error'); return; }
+
+  savingOp = true;
+  const tc = tipo === 'compra' ? tcCompra : tcVenta;
+  const montoARS = monto * tc;
+  const gananciaARS = tcCompra && tcVenta ? monto * (tcVenta - tcCompra) : 0;
+  const fecha = fechaInput ? new Date(fechaInput).toISOString() : new Date().toISOString();
+
+  const op = {
+    id: 'op' + Date.now(), tipo, clienteId, moneda, monto, tcCompra, tcVenta,
+    montoARS, gananciaARS, metodo, nota, fecha
+  };
+
+  const ops = DB.get('operaciones', []);
+  ops.push(op);
+  await DB.set('operaciones', ops);
+
+  // Actualizar saldos
+  const saldos = DB.get('saldos', {});
+  if (tipo === 'compra') {
+    saldos[moneda] = (saldos[moneda] || 0) + monto;   // gano moneda extranjera
+    saldos['ARS'] = (saldos['ARS'] || 0) - montoARS;  // pago ARS
+  } else {
+    saldos[moneda] = (saldos[moneda] || 0) - monto;   // doy moneda extranjera
+    saldos['ARS'] = (saldos['ARS'] || 0) + montoARS;  // cobro ARS
+  }
+  await DB.set('saldos', saldos);
+
+  // Actualizar estadías del cliente
+  const clientes = DB.get('clientes', []);
+  const cl = clientes.find(c => c.id === clienteId);
+  if (cl) {
+    cl.operaciones = (cl.operaciones || 0) + 1;
+    cl.volumenARS = (cl.volumenARS || 0) + montoARS;
+    cl.ultimaOp = fecha;
+    await DB.set('clientes', clientes);
+  }
+
+  savingOp = false;
+  closeModal('modalOperacion');
+  renderOperaciones();
+  showNotif(`✅ Operación registrada — Ganancia: ${fmtARS(gananciaARS)}`);
+
+  // Reset form
+  document.getElementById('op-monto').value = '';
+  document.getElementById('op-tc-compra').value = '';
+  document.getElementById('op-tc-venta').value = '';
+  document.getElementById('op-nota').value = '';
+  document.getElementById('op-preview').style.display = 'none';
+}
+
+function renderOperaciones() {
+  const ops = DB.get('operaciones', []);
+  const q = document.getElementById('filterOpCliente')?.value.toLowerCase() || '';
+  const tipo = document.getElementById('filterOpTipo')?.value || '';
+  const moneda = document.getElementById('filterOpMoneda')?.value || '';
+  const fecha = document.getElementById('filterOpFecha')?.value || '';
+
+  let filtered = [...ops].sort((a,b) => b.fecha > a.fecha ? 1 : -1).filter(o => {
+    const nombre = getClienteNombre(o.clienteId).toLowerCase();
+    return (!q || nombre.includes(q)) &&
+           (!tipo || o.tipo === tipo) &&
+           (!moneda || o.moneda === moneda) &&
+           (!fecha || o.fecha?.substring(0,10) === fecha);
+  });
+
+  // Poblar select de clientes
+  const clientes = DB.get('clientes', []);
+  document.getElementById('op-cliente').innerHTML = '<option value="">Seleccionar...</option>' +
+    clientes.map(c => `<option value="${c.id}">${c.alias || c.nombre}</option>`).join('');
+
+  document.getElementById('tablaOperaciones').innerHTML = filtered.length
+    ? filtered.map(o => `<tr>
+        <td style="font-size:10px;color:var(--text3)">${o.id.slice(-6)}</td>
+        <td>${fmtDT(o.fecha)}</td>
+        <td>${getClienteNombre(o.clienteId)}</td>
+        <td>${o.tipo === 'compra' ? '<span class="badge badge-compra">compra</span>' : '<span class="badge badge-venta">venta</span>'}</td>
+        <td>${o.tipo === 'compra' ? fmtARS(o.montoARS) + ' ARS' : fmtNum(o.monto) + ' ' + o.moneda}</td>
+        <td>${o.tipo === 'compra' ? fmtNum(o.monto) + ' ' + o.moneda : fmtARS(o.montoARS) + ' ARS'}</td>
+        <td style="color:var(--amber)">$${fmtNum(o.tipo==='compra'?o.tcCompra:o.tcVenta,2)}</td>
+        <td style="color:var(--green);font-weight:700">${fmtARS(o.gananciaARS)}</td>
+        <td><button class="btn btn-red btn-sm" onclick="deleteOperacion('${o.id}')">🗑</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="9" style="text-align:center;color:var(--text3)">Sin operaciones</td></tr>';
+}
+
+async function deleteOperacion(id) {
+  if (!confirm('¿Eliminar esta operación? Los saldos se revertirán.')) return;
+  const ops = DB.get('operaciones', []);
+  const op = ops.find(o => o.id === id);
+  if (!op) return;
+
+  // Revertir saldos
+  const saldos = DB.get('saldos', {});
+  if (op.tipo === 'compra') {
+    saldos[op.moneda] = (saldos[op.moneda] || 0) - op.monto;
+    saldos['ARS'] = (saldos['ARS'] || 0) + op.montoARS;
+  } else {
+    saldos[op.moneda] = (saldos[op.moneda] || 0) + op.monto;
+    saldos['ARS'] = (saldos['ARS'] || 0) - op.montoARS;
+  }
+  await DB.set('saldos', saldos);
+  await DB.set('operaciones', ops.filter(o => o.id !== id));
+  renderOperaciones();
+  showNotif('Operación eliminada');
+}
+
+// ===== CLIENTES =====
+function renderClientes() {
+  const clientes = DB.get('clientes', []);
+  const q = document.getElementById('filterCliente')?.value.toLowerCase() || '';
+  const filtered = clientes.filter(c =>
+    !q || (c.nombre + ' ' + (c.alias||'')).toLowerCase().includes(q)
+  );
+
+  document.getElementById('tablaClientes').innerHTML = filtered.length
+    ? filtered.map(c => `<tr>
+        <td>
+          <strong style="color:var(--text)">${c.nombre}</strong>
+          ${c.alias ? `<span style="font-size:11px;color:var(--text3)"> · ${c.alias}</span>` : ''}
+        </td>
+        <td>${c.tel ? `<a href="https://wa.me/${c.tel.replace(/\D/g,'')}" target="_blank" style="color:var(--green);text-decoration:none">📱 ${c.tel}</a>` : '—'}</td>
+        <td style="text-align:center">${c.operaciones || 0}</td>
+        <td>${fmtARS(c.volumenARS || 0)}</td>
+        <td>${c.ultimaOp ? c.ultimaOp.substring(0,10) : '—'}</td>
+        <td style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm" onclick="verCliente('${c.id}')">Ver</button>
+          <button class="btn btn-ghost btn-sm" onclick="editarCliente('${c.id}')">✏️</button>
+          <button class="btn btn-red btn-sm" onclick="deleteCliente('${c.id}')">🗑</button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin clientes</td></tr>';
+}
+
+function saveCliente() {
+  const id = document.getElementById('cl-id').value;
+  const nombre = document.getElementById('cl-nombre').value.trim();
+  if (!nombre) { showNotif('El nombre es obligatorio', 'error'); return; }
+
+  const clientes = DB.get('clientes', []);
+  if (id) {
+    const c = clientes.find(x => x.id === id);
+    if (c) {
+      c.nombre = nombre;
+      c.alias = document.getElementById('cl-alias').value;
+      c.tel = document.getElementById('cl-tel').value;
+      c.email = document.getElementById('cl-email').value;
+      c.plat = document.getElementById('cl-plat').value;
+      c.ref = document.getElementById('cl-ref').value;
+      c.notas = document.getElementById('cl-notas').value;
+    }
+  } else {
+    clientes.push({
+      id: 'cl' + Date.now(), nombre,
+      alias: document.getElementById('cl-alias').value,
+      tel: document.getElementById('cl-tel').value,
+      email: document.getElementById('cl-email').value,
+      plat: document.getElementById('cl-plat').value,
+      ref: document.getElementById('cl-ref').value,
+      notas: document.getElementById('cl-notas').value,
+      operaciones: 0, volumenARS: 0, ultimaOp: null
+    });
+  }
+  DB.set('clientes', clientes);
+  closeModal('modalCliente');
+  renderClientes();
+  showNotif('Cliente guardado: ' + nombre);
+}
+
+function editarCliente(id) {
+  const c = DB.get('clientes', []).find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('cl-id').value = c.id;
+  document.getElementById('cl-nombre').value = c.nombre;
+  document.getElementById('cl-alias').value = c.alias || '';
+  document.getElementById('cl-tel').value = c.tel || '';
+  document.getElementById('cl-email').value = c.email || '';
+  document.getElementById('cl-plat').value = c.plat || '';
+  document.getElementById('cl-ref').value = c.ref || '';
+  document.getElementById('cl-notas').value = c.notas || '';
+  document.getElementById('modalClienteTitle').textContent = 'Editar Cliente';
+  openModal('modalCliente');
+}
+
+function verCliente(id) {
+  const c = DB.get('clientes', []).find(x => x.id === id);
+  if (!c) return;
+  const ops = DB.get('operaciones', []).filter(o => o.clienteId === id);
+  const ganTotal = ops.reduce((a, o) => a + (Number(o.gananciaARS) || 0), 0);
+
+  document.getElementById('modalDetalleClienteTitle').textContent = c.nombre + (c.alias ? ` (${c.alias})` : '');
+  document.getElementById('detalleClienteContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+      <div style="background:var(--surface2);border-radius:var(--radius);padding:12px;">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">OPERACIONES</div>
+        <div style="font-size:22px;font-weight:700;font-family:var(--mono);color:var(--green)">${ops.length}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:var(--radius);padding:12px;">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">VOLUMEN</div>
+        <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--text)">${fmtARS(c.volumenARS||0)}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:var(--radius);padding:12px;">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">GANANCIA GENERADA</div>
+        <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--green)">${fmtARS(ganTotal)}</div>
+      </div>
+    </div>
+    ${c.tel ? `<p style="font-size:13px;color:var(--text2);margin-bottom:8px">📱 ${c.tel}</p>` : ''}
+    ${c.email ? `<p style="font-size:13px;color:var(--text2);margin-bottom:8px">✉️ ${c.email}</p>` : ''}
+    ${c.plat ? `<p style="font-size:13px;color:var(--text2);margin-bottom:8px">💱 Plataforma: ${c.plat}</p>` : ''}
+    ${c.notas ? `<p style="font-size:12px;color:var(--text3);margin-bottom:16px">📝 ${c.notas}</p>` : ''}
+    <p style="font-size:12px;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">ÚLTIMAS OPERACIONES</p>
+    <table>
+      <thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>TC</th><th>Ganancia</th></tr></thead>
+      <tbody>${ops.sort((a,b)=>b.fecha>a.fecha?1:-1).slice(0,10).map(o=>`<tr>
+        <td>${fmtDT(o.fecha)}</td>
+        <td>${o.tipo==='compra'?'<span class="badge badge-compra">compra</span>':'<span class="badge badge-venta">venta</span>'} ${o.moneda}</td>
+        <td>${fmtNum(o.monto)} ${o.moneda}</td>
+        <td style="color:var(--amber)">$${fmtNum(o.tipo==='compra'?o.tcCompra:o.tcVenta,2)}</td>
+        <td style="color:var(--green)">${fmtARS(o.gananciaARS)}</td>
+      </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin operaciones</td></tr>'}</tbody>
+    </table>`;
+  openModal('modalDetalleCliente');
+}
+
+async function deleteCliente(id) {
+  if (!confirm('¿Eliminar este cliente?')) return;
+  const clientes = DB.get('clientes', []).filter(c => c.id !== id);
+  await DB.set('clientes', clientes);
+  renderClientes();
+  showNotif('Cliente eliminado');
+}
+
+// ===== HISTORIAL =====
+function renderHistorial() {
+  const ops = DB.get('operaciones', []);
+  const desde = document.getElementById('filterHistDesde')?.value || '';
+  const hasta = document.getElementById('filterHistHasta')?.value || '';
+  const moneda = document.getElementById('filterHistMoneda')?.value || '';
+
+  let filtered = [...ops].sort((a,b) => b.fecha > a.fecha ? 1 : -1).filter(o =>
+    (!desde || o.fecha?.substring(0,10) >= desde) &&
+    (!hasta || o.fecha?.substring(0,10) <= hasta) &&
+    (!moneda || o.moneda === moneda)
+  );
+
+  const ganTotal = filtered.reduce((a,o) => a + (Number(o.gananciaARS)||0), 0);
+  document.getElementById('histTotal').textContent = `${filtered.length} ops · Ganancia: ${fmtARS(ganTotal)}`;
+
+  document.getElementById('tablaHistorial').innerHTML = filtered.length
+    ? filtered.map(o => `<tr>
+        <td>${fmtDT(o.fecha)}</td>
+        <td>${getClienteNombre(o.clienteId)}</td>
+        <td>${o.tipo==='compra'?'<span class="badge badge-compra">compra</span>':'<span class="badge badge-venta">venta</span>'} ${o.moneda}</td>
+        <td>${o.tipo==='compra'?fmtARS(o.montoARS)+' ARS':fmtNum(o.monto)+' '+o.moneda}</td>
+        <td>${o.tipo==='compra'?fmtNum(o.monto)+' '+o.moneda:fmtARS(o.montoARS)+' ARS'}</td>
+        <td style="color:var(--amber)">$${fmtNum(o.tipo==='compra'?o.tcCompra:o.tcVenta,2)}</td>
+        <td style="color:var(--green);font-weight:700">${fmtARS(o.gananciaARS)}</td>
+        <td style="color:var(--text3);font-size:11px">${o.nota||'—'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin resultados</td></tr>';
+}
+
+function exportarCSV() {
+  const ops = DB.get('operaciones', []);
+  const rows = [['Fecha','Cliente','Tipo','Moneda','Monto','TC Compra','TC Venta','Monto ARS','Ganancia ARS','Metodo','Nota']];
+  ops.sort((a,b)=>b.fecha>a.fecha?1:-1).forEach(o => {
+    rows.push([o.fecha,getClienteNombre(o.clienteId),o.tipo,o.moneda,o.monto,o.tcCompra,o.tcVenta,o.montoARS,o.gananciaARS,o.metodo,o.nota]);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `p2p-historial-${today()}.csv`;
+  a.click();
+}
+
+// ===== REPORTES =====
+function renderReportes() {
+  const ops = DB.get('operaciones', []);
+  const mes = today().substring(0,7);
+  const opsMes = ops.filter(o => o.fecha?.substring(0,7) === mes);
+
+  const ganMes = opsMes.reduce((a,o) => a + (Number(o.gananciaARS)||0), 0);
+  const volMes = opsMes.reduce((a,o) => a + (Number(o.montoARS)||0), 0);
+  const clientes = DB.get('clientes', []);
+
+  document.getElementById('reporteStats').innerHTML = `
+    <div class="stat-card green"><div class="label">Ganancia del mes</div><div class="value">${fmtARS(ganMes)}</div><div class="sub">${opsMes.length} operaciones</div></div>
+    <div class="stat-card blue"><div class="label">Volumen del mes</div><div class="value">${fmtARS(volMes)}</div><div class="sub">en ARS</div></div>
+    <div class="stat-card amber"><div class="label">Ticket promedio</div><div class="value">${fmtARS(opsMes.length ? volMes/opsMes.length : 0)}</div><div class="sub">por operación</div></div>
+    <div class="stat-card green"><div class="label">Clientes activos</div><div class="value">${clientes.filter(c=>c.operaciones>0).length}</div><div class="sub">con operaciones</div></div>`;
+
+  // Ganancia por moneda
+  const porMoneda = {};
+  opsMes.forEach(o => {
+    if (!porMoneda[o.moneda]) porMoneda[o.moneda] = { ops: 0, gan: 0 };
+    porMoneda[o.moneda].ops++;
+    porMoneda[o.moneda].gan += Number(o.gananciaARS)||0;
+  });
+  document.getElementById('reporteMonedas').innerHTML = Object.entries(porMoneda).sort((a,b)=>b[1].gan-a[1].gan).map(([m,d]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div><span class="badge badge-gray">${m}</span> <span style="font-size:11px;color:var(--text3)">${d.ops} ops</span></div>
+      <span style="font-family:var(--mono);font-weight:700;color:var(--green)">${fmtARS(d.gan)}</span>
+    </div>`).join('') || '<p style="color:var(--text3);text-align:center;padding:16px">Sin datos este mes</p>';
+
+  // Top clientes
+  const topClientes = [...clientes].sort((a,b) => (b.volumenARS||0)-(a.volumenARS||0)).slice(0,5);
+  document.getElementById('reporteClientes').innerHTML = topClientes.map(c => `<tr>
+    <td>${c.nombre}</td>
+    <td style="text-align:center">${c.operaciones||0}</td>
+    <td style="color:var(--green)">${fmtARS(c.volumenARS||0)}</td>
+  </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text3)">Sin datos</td></tr>';
+}
+
+// ===== INIT =====
+updateDate();
+loadAllData().then(() => showSection('dashboard'));
+
+// Abrir modal operacion: poblar clientes
+document.getElementById('modalOperacion').addEventListener('click', () => {
+  const clientes = DB.get('clientes', []);
+  document.getElementById('op-cliente').innerHTML = '<option value="">Seleccionar...</option>' +
+    clientes.map(c => `<option value="${c.id}">${c.alias || c.nombre}</option>`).join('');
+  document.getElementById('op-fecha').value = nowDT();
+});
+
+// Modal cliente reset
+document.getElementById('modalCliente').addEventListener('click', () => {});
+
+Object.assign(window, {
+  doLogin, doLogout, showSection, openModal, closeModal,
+  calcOperacion, saveOperacion, deleteOperacion, renderOperaciones,
+  saveCliente, editarCliente, verCliente, deleteCliente, renderClientes,
+  saveAjuste, renderCaja,
+  renderHistorial, exportarCSV,
+  renderReportes,
+});
+</script>
+</body>
+</html>
