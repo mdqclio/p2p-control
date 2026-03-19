@@ -24,9 +24,9 @@
   --amber2: rgba(255,170,0,0.12);
   --blue: #4488ff;
   --blue2: rgba(68,136,255,0.12);
-  --text: #e8f4f0;
-  --text2: #7a9e94;
-  --text3: #3d5c52;
+  --text: #f0faf6;
+  --text2: #a8c8bc;
+  --text3: #6a9e8e;
   --radius: 8px;
   --radius2: 14px;
   --mono: 'Space Mono', monospace;
@@ -151,7 +151,7 @@ nav { flex: 1; padding: 10px 0; overflow-y: auto; }
 /* TABLE */
 table { width: 100%; border-collapse: collapse; }
 th { font-family: var(--mono); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface2); }
-td { font-size: 13px; color: var(--text2); padding: 11px 16px; border-bottom: 1px solid rgba(0,255,170,0.04); font-family: var(--mono); }
+td { font-size: 13px; color: var(--text); padding: 11px 16px; border-bottom: 1px solid rgba(0,255,170,0.04); font-family: var(--mono); }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: rgba(0,255,170,0.03); color: var(--text); }
 
@@ -449,27 +449,34 @@ tr:hover td { background: rgba(0,255,170,0.03); color: var(--text); }
 
 <!-- MODAL OPERACION -->
 <div class="modal-overlay" id="modalOperacion">
-  <div class="modal">
+  <div class="modal" style="width:580px;">
     <h2>⚡ Nueva Operación</h2>
+
     <div class="form-row">
-      <div class="form-group">
-        <label>Tipo *</label>
-        <select id="op-tipo" onchange="calcOperacion()">
-          <option value="compra">Compra (me dan — yo pago ARS)</option>
-          <option value="venta">Venta (doy — me pagan ARS)</option>
-        </select>
-      </div>
       <div class="form-group">
         <label>Cliente *</label>
         <select id="op-cliente"><option value="">Seleccionar...</option></select>
       </div>
-    </div>
-    <div class="form-row">
       <div class="form-group">
-        <label>Moneda que opera *</label>
-        <select id="op-moneda" onchange="calcOperacion()">
-          <option value="USDT">USDT</option>
-          <option value="USD">USD efectivo</option>
+        <label>Fecha y hora</label>
+        <input type="datetime-local" id="op-fecha">
+      </div>
+    </div>
+
+    <!-- Tipo de operación -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="op-btn-compra" class="btn btn-green" style="flex:1;padding:10px;" onclick="setOpTipo('compra')">📥 COMPRO USDT</button>
+      <button id="op-btn-venta" class="btn btn-ghost" style="flex:1;padding:10px;" onclick="setOpTipo('venta')">📤 VENDO USDT</button>
+    </div>
+    <input type="hidden" id="op-tipo" value="compra">
+
+    <!-- Monedas involucradas -->
+    <div class="form-row" style="margin-bottom:12px;">
+      <div class="form-group">
+        <label id="op-contrap-label">Pago con (contrapartida) *</label>
+        <select id="op-contrap-moneda" onchange="calcOperacion()">
+          <option value="USD">USD cash</option>
+          <option value="ARS">ARS</option>
           <option value="EUR">EUR</option>
           <option value="Wise USD">Wise USD</option>
           <option value="Wise EUR">Wise EUR</option>
@@ -478,50 +485,65 @@ tr:hover td { background: rgba(0,255,170,0.03); color: var(--text); }
         </select>
       </div>
       <div class="form-group">
-        <label>Monto *</label>
-        <input type="number" id="op-monto" placeholder="0.00" oninput="calcOperacion()">
+        <label>Monto USDT *</label>
+        <input type="number" id="op-monto-usdt" placeholder="ej: 1000" oninput="calcOperacion()" step="0.01">
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>TC compra (precio al que compro)</label>
-        <input type="number" id="op-tc-compra" placeholder="0.00" oninput="calcOperacion()">
+
+    <!-- Precio de la operación -->
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Montos — editá cualquier campo, los demás se actualizan</div>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:8px;margin-bottom:10px;">
+        <div class="form-group" style="margin:0">
+          <label>USDT</label>
+          <input type="number" id="op-monto-usdt2" placeholder="ej: 1960" oninput="recalcDesde('usdt')" step="0.01">
+        </div>
+        <div style="font-family:var(--mono);font-size:18px;color:var(--text3);text-align:center;padding-top:18px;">⇄</div>
+        <div class="form-group" style="margin:0">
+          <label id="op-contra-label2">Contrapartida</label>
+          <input type="number" id="op-monto-contra2" placeholder="ej: 2000" oninput="recalcDesde('contra')" step="0.01">
+        </div>
+        <div style="font-family:var(--mono);font-size:18px;color:var(--text3);text-align:center;padding-top:18px;">=</div>
+        <div class="form-group" style="margin:0">
+          <label>% resultante</label>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <input type="number" id="op-pct" placeholder="ej: 2" oninput="recalcDesde('pct')" step="0.0001" style="flex:1;">
+            <span style="font-family:var(--mono);color:var(--text3)">%</span>
+          </div>
+        </div>
       </div>
-      <div class="form-group">
-        <label>TC venta (precio al que vendo)</label>
-        <input type="number" id="op-tc-venta" placeholder="0.00" oninput="calcOperacion()">
-      </div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text3);" id="op-formula-hint"></div>
     </div>
+
+    <!-- Estado -->
     <div class="form-row">
       <div class="form-group">
-        <label>Método de cobro/pago</label>
-        <select id="op-metodo">
-          <option value="efectivo">Efectivo ARS</option>
-          <option value="transferencia">Transferencia ARS</option>
-          <option value="crypto">Crypto on-chain</option>
-          <option value="wise">Wise</option>
-          <option value="payoneer">Payoneer</option>
-          <option value="paypal">PayPal</option>
+        <label>Estado</label>
+        <select id="op-estado">
+          <option value="completada">✅ Completada</option>
+          <option value="pendiente_cobro">⏳ Pendiente — falta que me paguen</option>
+          <option value="pendiente_entrega">⏳ Pendiente — falta que yo entregue</option>
+          <option value="parcial">🔶 Parcial</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Fecha y hora</label>
-        <input type="datetime-local" id="op-fecha">
+        <label>Nota</label>
+        <input type="text" id="op-nota" placeholder="Ej: cliente habitual...">
       </div>
     </div>
-    <div class="form-group">
-      <label>Nota</label>
-      <input type="text" id="op-nota" placeholder="Ej: cliente habitual, urgente...">
-    </div>
+
+    <!-- Preview resultado -->
     <div class="ganancia-box" id="op-preview" style="display:none;">
-      <div class="g-label">Resumen de la operación</div>
-      <div id="op-preview-content" style="margin-top:8px;font-family:var(--mono);font-size:13px;color:var(--text2);line-height:2;"></div>
-      <div class="g-label" style="margin-top:8px;">Ganancia estimada</div>
-      <div class="g-value" id="op-ganancia-display">$0 ARS</div>
+      <div id="op-preview-content" style="font-family:var(--mono);font-size:13px;color:var(--text2);line-height:2.2;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border2);">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Ganancia en esta op</span>
+        <span class="g-value" id="op-ganancia-display" style="font-size:20px;">—</span>
+      </div>
     </div>
+
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalOperacion')">Cancelar</button>
-      <button class="btn btn-green" onclick="saveOperacion()">Confirmar operación</button>
+      <button class="btn btn-green" onclick="saveOperacion()">Registrar operación</button>
     </div>
   </div>
 </div>
@@ -869,85 +891,151 @@ async function saveAjuste() {
 }
 
 // ===== OPERACIONES =====
+function setOpTipo(tipo) {
+  document.getElementById('op-tipo').value = tipo;
+  if (tipo === 'compra') {
+    document.getElementById('op-btn-compra').className = 'btn btn-green';
+    document.getElementById('op-btn-venta').className = 'btn btn-ghost';
+    document.getElementById('op-contrap-label').textContent = 'Pago con (contrapartida) *';
+  } else {
+    document.getElementById('op-btn-compra').className = 'btn btn-ghost';
+    document.getElementById('op-btn-venta').className = 'btn btn-green';
+    document.getElementById('op-contrap-label').textContent = 'Recibo en (contrapartida) *';
+  }
+  updateContraLabel();
+  calcOperacion();
+}
+
+function updateContraLabel() {
+  const moneda = document.getElementById('op-contrap-moneda').value;
+  const label = document.getElementById('op-contra-label2');
+  if (label) label.textContent = moneda;
+}
+
+// Los tres campos USDT, Contra y % están interconectados
+// Cuando el usuario edita uno, los otros dos se recalculan
+function recalcDesde(origen) {
+  const usdt = Number(document.getElementById('op-monto-usdt2').value) || 0;
+  const contra = Number(document.getElementById('op-monto-contra2').value) || 0;
+  const pct = Number(document.getElementById('op-pct').value) || 0;
+
+  if (origen === 'usdt' && usdt) {
+    if (contra) {
+      // Tengo USDT y Contra → calculo %
+      const p = ((contra / usdt) - 1) * 100;
+      document.getElementById('op-pct').value = Number(p.toFixed(4));
+    } else if (pct !== 0) {
+      // Tengo USDT y % → calculo Contra
+      document.getElementById('op-monto-contra2').value = Number((usdt * (1 + pct/100)).toFixed(2));
+    }
+  } else if (origen === 'contra' && contra) {
+    if (usdt) {
+      // Tengo USDT y Contra → calculo %
+      const p = ((contra / usdt) - 1) * 100;
+      document.getElementById('op-pct').value = Number(p.toFixed(4));
+    } else if (pct !== 0) {
+      // Tengo Contra y % → calculo USDT
+      document.getElementById('op-monto-usdt2').value = Number((contra / (1 + pct/100)).toFixed(4));
+    }
+  } else if (origen === 'pct') {
+    if (usdt) {
+      // Tengo USDT y % → calculo Contra
+      document.getElementById('op-monto-contra2').value = Number((usdt * (1 + pct/100)).toFixed(2));
+    } else if (contra) {
+      // Tengo Contra y % → calculo USDT
+      document.getElementById('op-monto-usdt2').value = Number((contra / (1 + pct/100)).toFixed(4));
+    }
+  }
+  calcOperacion();
+}
+
 function calcOperacion() {
   const tipo = document.getElementById('op-tipo').value;
-  const moneda = document.getElementById('op-moneda').value;
-  const monto = Number(document.getElementById('op-monto').value) || 0;
-  const tcCompra = Number(document.getElementById('op-tc-compra').value) || 0;
-  const tcVenta = Number(document.getElementById('op-tc-venta').value) || 0;
+  const montoUSDT = Number(document.getElementById('op-monto-usdt2')?.value) || 0;
+  const montoContra = Number(document.getElementById('op-monto-contra2')?.value) || 0;
+  const pct = Number(document.getElementById('op-pct').value) || 0;
+  const contrapMoneda = document.getElementById('op-contrap-moneda').value;
 
   const preview = document.getElementById('op-preview');
-  if (!monto || (!tcCompra && !tcVenta)) { preview.style.display = 'none'; return; }
+  const hint = document.getElementById('op-formula-hint');
 
-  let ganancia = 0, montoARS = 0, desc = '';
+  if (!montoUSDT || !montoContra) { preview.style.display = 'none'; if(hint) hint.textContent = ''; return; }
 
-  if (tipo === 'compra') {
-    // Compro moneda extranjera: pago tcCompra*monto ARS, después vendo a tcVenta
-    montoARS = monto * tcCompra;
-    if (tcVenta) ganancia = monto * (tcVenta - tcCompra);
-    desc = `Compro ${fmtNum(monto)} ${moneda} a $${fmtNum(tcCompra,2)}<br>Pago: ${fmtARS(montoARS)} ARS`;
-    if (tcVenta) desc += `<br>Si vendo a $${fmtNum(tcVenta,2)} → ganancia: ${fmtARS(ganancia)}`;
+  const ganancia = montoUSDT * Math.abs(pct) / 100;
+  const sign = pct >= 0 ? '+' : '';
+  if (hint) hint.innerHTML = `${fmtNum(montoUSDT,2)} USDT × (1 ${sign}${pct}%) = ${fmtNum(montoContra,2)} ${contrapMoneda}`;
+
+  let doyTxt, reciboTxt;
+  if (tipo === 'venta') {
+    doyTxt = `<strong style="color:var(--red)">${fmtNum(montoUSDT,2)} USDT</strong>`;
+    reciboTxt = `<strong style="color:var(--green)">${fmtNum(montoContra,2)} ${contrapMoneda}</strong>`;
   } else {
-    // Vendo moneda extranjera: cobro tcVenta*monto ARS, la había comprado a tcCompra
-    montoARS = monto * tcVenta;
-    if (tcCompra) ganancia = monto * (tcVenta - tcCompra);
-    desc = `Vendo ${fmtNum(monto)} ${moneda} a $${fmtNum(tcVenta,2)}<br>Cobro: ${fmtARS(montoARS)} ARS`;
-    if (tcCompra) desc += `<br>Comprado a $${fmtNum(tcCompra,2)} → ganancia: ${fmtARS(ganancia)}`;
+    doyTxt = `<strong style="color:var(--red)">${fmtNum(montoContra,2)} ${contrapMoneda}</strong>`;
+    reciboTxt = `<strong style="color:var(--green)">${fmtNum(montoUSDT,2)} USDT</strong>`;
   }
 
   preview.style.display = 'block';
-  document.getElementById('op-preview-content').innerHTML = desc;
-  document.getElementById('op-ganancia-display').textContent = fmtARS(ganancia) + ' ARS';
-  document.getElementById('op-ganancia-display').style.color = ganancia >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('op-preview-content').innerHTML = `Doy: ${doyTxt}<br>Recibo: ${reciboTxt}`;
+  document.getElementById('op-ganancia-display').textContent =
+    `${fmtNum(ganancia,2)} ${tipo === 'venta' ? contrapMoneda : 'USDT'}`;
+  document.getElementById('op-ganancia-display').style.color =
+    ganancia > 0 ? 'var(--green)' : pct < 0 ? 'var(--amber)' : 'var(--text3)';
 }
 
 let savingOp = false;
 async function saveOperacion() {
   if (savingOp) return;
-  const tipo = document.getElementById('op-tipo').value;
   const clienteId = document.getElementById('op-cliente').value;
-  const moneda = document.getElementById('op-moneda').value;
-  const monto = Number(document.getElementById('op-monto').value);
-  const tcCompra = Number(document.getElementById('op-tc-compra').value) || 0;
-  const tcVenta = Number(document.getElementById('op-tc-venta').value) || 0;
-  const metodo = document.getElementById('op-metodo').value;
+  const tipo = document.getElementById('op-tipo').value;
+  const montoUSDT = Number(document.getElementById('op-monto-usdt2').value) || 0;
+  const montoContra = Number(document.getElementById('op-monto-contra2').value) || 0;
+  const pct = Number(document.getElementById('op-pct').value) || 0;
+  const contrapMoneda = document.getElementById('op-contrap-moneda').value;
+  const estado = document.getElementById('op-estado').value;
   const nota = document.getElementById('op-nota').value;
   const fechaInput = document.getElementById('op-fecha').value;
 
-  if (!clienteId || !monto || monto <= 0) { showNotif('Completá cliente y monto', 'error'); return; }
+  if (!clienteId) { showNotif('Seleccioná un cliente', 'error'); return; }
+  if (!montoUSDT) { showNotif('Ingresá el monto en USDT', 'error'); return; }
+  if (!montoContra) { showNotif('Ingresá el monto en contrapartida', 'error'); return; }
 
   savingOp = true;
-  const tc = tipo === 'compra' ? tcCompra : tcVenta;
-  const montoARS = monto * tc;
-  const gananciaARS = tcCompra && tcVenta ? monto * (tcVenta - tcCompra) : 0;
-  const fecha = fechaInput ? new Date(fechaInput).toISOString() : new Date().toISOString();
+  const ganancia = montoUSDT * Math.abs(pct) / 100;
 
+  let doyMonto, doyMoneda, reciboMonto, reciboMoneda;
+  if (tipo === 'venta') {
+    doyMonto = montoUSDT; doyMoneda = 'USDT';
+    reciboMonto = montoContra; reciboMoneda = contrapMoneda;
+  } else {
+    doyMonto = montoContra; doyMoneda = contrapMoneda;
+    reciboMonto = montoUSDT; reciboMoneda = 'USDT';
+  }
+
+  const fecha = fechaInput ? new Date(fechaInput).toISOString() : new Date().toISOString();
   const op = {
-    id: 'op' + Date.now(), tipo, clienteId, moneda, monto, tcCompra, tcVenta,
-    montoARS, gananciaARS, metodo, nota, fecha
+    id: 'op' + Date.now(),
+    clienteId, tipo, fecha, estado, nota, pct,
+    montoUSDT, montoContra, contrapMoneda, ganancia,
+    doyMonto, doyMoneda, reciboMonto, reciboMoneda,
+    moneda: 'USDT', monto: montoUSDT, gananciaARS: 0,
   };
 
   const ops = DB.get('operaciones', []);
   ops.push(op);
   await DB.set('operaciones', ops);
 
-  // Actualizar saldos
-  const saldos = DB.get('saldos', {});
-  if (tipo === 'compra') {
-    saldos[moneda] = (saldos[moneda] || 0) + monto;   // gano moneda extranjera
-    saldos['ARS'] = (saldos['ARS'] || 0) - montoARS;  // pago ARS
-  } else {
-    saldos[moneda] = (saldos[moneda] || 0) - monto;   // doy moneda extranjera
-    saldos['ARS'] = (saldos['ARS'] || 0) + montoARS;  // cobro ARS
+  if (estado === 'completada') {
+    const saldos = DB.get('saldos', {});
+    saldos[doyMoneda] = (saldos[doyMoneda] || 0) - doyMonto;
+    saldos[reciboMoneda] = (saldos[reciboMoneda] || 0) + reciboMonto;
+    await DB.set('saldos', saldos);
   }
-  await DB.set('saldos', saldos);
 
-  // Actualizar estadías del cliente
   const clientes = DB.get('clientes', []);
   const cl = clientes.find(c => c.id === clienteId);
   if (cl) {
     cl.operaciones = (cl.operaciones || 0) + 1;
-    cl.volumenARS = (cl.volumenARS || 0) + montoARS;
+    cl.volumenUSDT = (cl.volumenUSDT || 0) + montoUSDT;
     cl.ultimaOp = fecha;
     await DB.set('clientes', clientes);
   }
@@ -955,71 +1043,47 @@ async function saveOperacion() {
   savingOp = false;
   closeModal('modalOperacion');
   renderOperaciones();
-  showNotif(`✅ Operación registrada — Ganancia: ${fmtARS(gananciaARS)}`);
+  const sign = pct >= 0 ? '+' : '';
+  showNotif(`✅ ${tipo === 'compra' ? 'Compra' : 'Venta'} — ${fmtNum(montoUSDT,2)} USDT al ${sign}${pct}% → ${fmtNum(montoContra,2)} ${contrapMoneda}`);
 
-  // Reset form
-  document.getElementById('op-monto').value = '';
-  document.getElementById('op-tc-compra').value = '';
-  document.getElementById('op-tc-venta').value = '';
-  document.getElementById('op-nota').value = '';
+  ['op-monto-usdt2','op-monto-contra2','op-pct','op-nota'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   document.getElementById('op-preview').style.display = 'none';
 }
-
-function renderOperaciones() {
+async function completarOp(id) {
   const ops = DB.get('operaciones', []);
-  const q = document.getElementById('filterOpCliente')?.value.toLowerCase() || '';
-  const tipo = document.getElementById('filterOpTipo')?.value || '';
-  const moneda = document.getElementById('filterOpMoneda')?.value || '';
-  const fecha = document.getElementById('filterOpFecha')?.value || '';
-
-  let filtered = [...ops].sort((a,b) => b.fecha > a.fecha ? 1 : -1).filter(o => {
-    const nombre = getClienteNombre(o.clienteId).toLowerCase();
-    return (!q || nombre.includes(q)) &&
-           (!tipo || o.tipo === tipo) &&
-           (!moneda || o.moneda === moneda) &&
-           (!fecha || o.fecha?.substring(0,10) === fecha);
-  });
-
-  // Poblar select de clientes
-  const clientes = DB.get('clientes', []);
-  document.getElementById('op-cliente').innerHTML = '<option value="">Seleccionar...</option>' +
-    clientes.map(c => `<option value="${c.id}">${c.alias || c.nombre}</option>`).join('');
-
-  document.getElementById('tablaOperaciones').innerHTML = filtered.length
-    ? filtered.map(o => `<tr>
-        <td style="font-size:10px;color:var(--text3)">${o.id.slice(-6)}</td>
-        <td>${fmtDT(o.fecha)}</td>
-        <td>${getClienteNombre(o.clienteId)}</td>
-        <td>${o.tipo === 'compra' ? '<span class="badge badge-compra">compra</span>' : '<span class="badge badge-venta">venta</span>'}</td>
-        <td>${o.tipo === 'compra' ? fmtARS(o.montoARS) + ' ARS' : fmtNum(o.monto) + ' ' + o.moneda}</td>
-        <td>${o.tipo === 'compra' ? fmtNum(o.monto) + ' ' + o.moneda : fmtARS(o.montoARS) + ' ARS'}</td>
-        <td style="color:var(--amber)">$${fmtNum(o.tipo==='compra'?o.tcCompra:o.tcVenta,2)}</td>
-        <td style="color:var(--green);font-weight:700">${fmtARS(o.gananciaARS)}</td>
-        <td><button class="btn btn-red btn-sm" onclick="deleteOperacion('${o.id}')">🗑</button></td>
-      </tr>`).join('')
-    : '<tr><td colspan="9" style="text-align:center;color:var(--text3)">Sin operaciones</td></tr>';
+  const op = ops.find(o => o.id === id);
+  if (!op) return;
+  op.estado = 'completada';
+  // Actualizar saldos ahora que se completó
+  const saldos = DB.get('saldos', {});
+  saldos[op.doyMoneda] = (saldos[op.doyMoneda] || 0) - op.doyMonto;
+  saldos[op.reciboMoneda] = (saldos[op.reciboMoneda] || 0) + op.reciboMonto;
+  await DB.set('saldos', saldos);
+  await DB.set('operaciones', ops);
+  renderOperaciones();
+  showNotif(`✅ Operación ${id.slice(-6)} marcada como completada`);
 }
 
 async function deleteOperacion(id) {
-  if (!confirm('¿Eliminar esta operación? Los saldos se revertirán.')) return;
+  if (!confirm('¿Eliminar esta operación?')) return;
   const ops = DB.get('operaciones', []);
   const op = ops.find(o => o.id === id);
   if (!op) return;
 
-  // Revertir saldos
-  const saldos = DB.get('saldos', {});
-  if (op.tipo === 'compra') {
-    saldos[op.moneda] = (saldos[op.moneda] || 0) - op.monto;
-    saldos['ARS'] = (saldos['ARS'] || 0) + op.montoARS;
-  } else {
-    saldos[op.moneda] = (saldos[op.moneda] || 0) + op.monto;
-    saldos['ARS'] = (saldos['ARS'] || 0) - op.montoARS;
+  // Revertir saldos solo si estaba completada
+  if (op.estado === 'completada') {
+    const saldos = DB.get('saldos', {});
+    saldos[op.doyMoneda] = (saldos[op.doyMoneda] || 0) + op.doyMonto;
+    saldos[op.reciboMoneda] = (saldos[op.reciboMoneda] || 0) - op.reciboMonto;
+    await DB.set('saldos', saldos);
   }
-  await DB.set('saldos', saldos);
   await DB.set('operaciones', ops.filter(o => o.id !== id));
   renderOperaciones();
   showNotif('Operación eliminada');
 }
+
 
 // ===== CLIENTES =====
 function renderClientes() {
@@ -1232,11 +1296,19 @@ updateDate();
 loadAllData().then(() => showSection('dashboard'));
 
 // Abrir modal operacion: poblar clientes
-document.getElementById('modalOperacion').addEventListener('click', () => {
-  const clientes = DB.get('clientes', []);
-  document.getElementById('op-cliente').innerHTML = '<option value="">Seleccionar...</option>' +
-    clientes.map(c => `<option value="${c.id}">${c.alias || c.nombre}</option>`).join('');
-  document.getElementById('op-fecha').value = nowDT();
+// Inicializar modal al abrirse
+const _origOpenModal = window.openModal;
+document.addEventListener('click', e => {
+  const btn = e.target.closest('button[onclick]');
+  if (btn && btn.getAttribute('onclick')?.includes("modalOperacion")) {
+    setTimeout(() => {
+      const clientes = DB.get('clientes', []);
+      document.getElementById('op-cliente').innerHTML = '<option value="">Seleccionar...</option>' +
+        clientes.map(c => `<option value="${c.id}">${c.alias || c.nombre}</option>`).join('');
+      document.getElementById('op-fecha').value = nowDT();
+      setOpTipo('compra');
+    }, 50);
+  }
 });
 
 // Modal cliente reset
@@ -1244,7 +1316,7 @@ document.getElementById('modalCliente').addEventListener('click', () => {});
 
 Object.assign(window, {
   doLogin, doLogout, showSection, openModal, closeModal,
-  calcOperacion, saveOperacion, deleteOperacion, renderOperaciones,
+  calcOperacion, recalcDesde, updateContraLabel, saveOperacion, deleteOperacion, completarOp, renderOperaciones, setOpTipo,
   saveCliente, editarCliente, verCliente, deleteCliente, renderClientes,
   saveAjuste, renderCaja,
   renderHistorial, exportarCSV,
