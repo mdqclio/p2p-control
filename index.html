@@ -632,10 +632,24 @@ tr:hover td { background: rgba(0,255,170,0.03); color: var(--text); }
 
 <div class="notif" id="notif"></div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
-import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script>
+// Wrappers para compatibilidad con la sintaxis modular que usamos
+function initializeApp(config) { return firebase.initializeApp(config); }
+function getDatabase(app) { return firebase.database(); }
+function getAuth(app) { return firebase.auth(); }
+function ref(db, path) { return db.ref(path); }
+async function set(refObj, val) { return refObj.set(val); }
+async function get(refObj) {
+  const snap = await refObj.once('value');
+  return { exists: () => snap.exists(), val: () => snap.val() };
+}
+function signInWithEmailAndPassword(auth, email, pass) { return auth.signInWithEmailAndPassword(email, pass); }
+function signOut(auth) { return auth.signOut(); }
+</script>
+<script>
 
 // ===== FIREBASE CONFIG — reemplazá con tu propio proyecto =====
 const firebaseConfig = {
