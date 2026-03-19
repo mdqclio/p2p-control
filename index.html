@@ -714,7 +714,8 @@ async function initData() {
 // ===== AUTH =====
 let currentUser = null;
 
-async function doLogin() {
+// Exponer funciones globalmente lo antes posible
+window.doLogin = async function() {
   const email = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value;
   if (!email || !pass) { showLoginError('Completá usuario y contraseña'); return; }
@@ -744,7 +745,7 @@ function showLoginError(msg, color = '#ff4466') {
   if (color !== '#60a5fa') setTimeout(() => el.textContent = '', 3500);
 }
 
-async function doLogout() {
+window.doLogout = async function doLogout() {
   await signOut(auth);
   currentUser = null;
   document.getElementById('loginScreen').style.display = 'flex';
@@ -1375,7 +1376,7 @@ document.addEventListener('click', e => {
 document.getElementById('modalCliente').addEventListener('click', () => {});
 
 Object.assign(window, {
-  doLogin, doLogout, showSection, openModal, closeModal,
+  doLogin: window.doLogin, doLogout: window.doLogout, showSection, openModal, closeModal,
   calcOperacion, recalcDesde, updateContraLabel, calcPrecioPromedio, saveOperacion, deleteOperacion, completarOp, renderOperaciones, setOpTipo,
   saveCliente, editarCliente, verCliente, deleteCliente, renderClientes,
   saveAjuste, renderCaja,
